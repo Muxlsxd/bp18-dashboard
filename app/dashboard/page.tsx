@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db";
 import { COLLECTIONS } from "@/lib/collections";
 import Shell from "@/components/Shell";
+import { MiniCharts } from "@/components/MiniCharts";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,8 @@ export default async function Overview() {
         <span style={{ color: "var(--text-dim)", fontSize: 12 }}>Total records across all sections</span>
         <div style={{ fontSize: 24, color: "var(--text)" }}>{total}</div>
       </div>
+
+      <MiniCharts />
     </Shell>
   );
 }

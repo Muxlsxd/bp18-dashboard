@@ -33,6 +33,7 @@ function Icon({ name, size = 16 }: { name: string; size?: number }) {
 
 const NAV = [
   { slug: "dashboard", label: "Overview", icon: "layout-dashboard" },
+  { slug: "analytics", label: "Analytics", icon: "git-compare" },
   { slug: "tasks", label: "Tasks", icon: "check-square" },
   { slug: "weight", label: "Weight Budget", icon: "scale" },
   { slug: "cost", label: "Cost Tracker", icon: "banknote" },
