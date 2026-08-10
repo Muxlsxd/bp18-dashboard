@@ -121,3 +121,6 @@ a {
 .badge-progress { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 40%, transparent); }
 .badge-blocked { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
 .badge-warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+
+.pulse { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }

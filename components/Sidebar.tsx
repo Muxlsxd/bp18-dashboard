@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -49,9 +49,26 @@ const NAV = [
   { slug: "rawstore", label: "Raw Materials", icon: "box" },
 ];
 
+const STORAGE_KEY = "bp18-sidebar-collapsed";
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+
+  // Restore collapse state across reloads.
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === "1") setCollapsed(true);
+  }, []);
+
+  function toggle() {
+    setCollapsed((c) => {
+      const next = !c;
+      localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+      return next;
+    });
+  }
+
   return (
     <aside
       className="h-screen sticky top-0 flex flex-col border-r"
@@ -63,7 +80,7 @@ export function Sidebar() {
       }}
     >
       <div className="flex items-center gap-2 px-3 h-12 border-b" style={{ borderColor: "var(--border)" }}>
-        <button className="btn" style={{ padding: "4px 8px" }} onClick={() => setCollapsed((c) => !c)} title="Toggle">
+        <button className="btn" style={{ padding: "4px 8px" }} onClick={toggle} title="Toggle">
           <Icon name="list-checks" />
         </button>
         {!collapsed && (
@@ -72,7 +89,7 @@ export function Sidebar() {
       </div>
       <nav className="flex-1 overflow-y-auto py-2">
         {NAV.map((n) => {
-          const active = pathname === `/${n.slug}` || (n.slug === "dashboard" && pathname === "/dashboard");
+          const active = pathname === `/${n.slug}`;
           return (
             <Link
               key={n.slug}

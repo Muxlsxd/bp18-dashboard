@@ -11,26 +11,38 @@ function badgeClass(value: string): string {
     return "badge badge-progress";
   if (v.includes("block") || v.includes("fail") || v.includes("out") || v.includes("reject") || v.includes("critical") || v.includes("open"))
     return "badge badge-blocked";
-  if (v.includes("not started") || v.includes("not checked"))
-    return "badge";
   return "badge";
+}
+
+// Normalize any date-ish value to YYYY-MM-DD for <input type="date">.
+function toDateInput(v: any): string {
+  if (!v) return "";
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
 }
 
 function Cell({ field, value }: { field: FieldDef; value: any }) {
   if (field.type === "select") return <span className={badgeClass(String(value || ""))}>{value || "—"}</span>;
   if (field.type === "date" && value) {
-    const d = String(value).slice(0, 10);
-    return <span style={{ color: "var(--text)" }}>{d}</span>;
+    return <span style={{ color: "var(--text)" }}>{toDateInput(value)}</span>;
   }
   if (typeof value === "number") return <span style={{ fontVariantNumeric: "tabular-nums" }}>{value}</span>;
   return <span style={{ color: value ? "var(--text)" : "var(--text-dim)" }}>{value || "—"}</span>;
 }
+
+const PAGE_SIZE = 12;
 
 export function GenericTable({ meta }: { meta: CollectionMeta }) {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,54 +54,95 @@ export function GenericTable({ meta }: { meta: CollectionMeta }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Reset to first page when filter changes.
+  useEffect(() => { setPage(0); }, [query]);
+
+  const visibleFields = meta.fields.filter((f) => f.type !== "textarea");
+
+  // Client-side search across visible text/number/select fields.
+  const filtered = query.trim()
+    ? rows.filter((r) =>
+        visibleFields.some((f) => String(r[f.key] ?? "").toLowerCase().includes(query.trim().toLowerCase()))
+      )
+    : rows;
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paged = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+
   async function save(form: any, id?: string) {
+    // client validation
+    const missing = meta.fields.filter((f) => f.required && !String(form[f.key] ?? "").trim());
+    if (missing.length) {
+      alert("Required: " + missing.map((m) => m.label).join(", "));
+      return;
+    }
+    setSaving(true);
     const method = id ? "PATCH" : "POST";
     const url = id ? `/api/${meta.slug}/${id}` : `/api/${meta.slug}`;
-    await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setShowForm(false);
-    setEditing(null);
-    load();
+    // optimistic: build a temp row so the table updates instantly
+    if (!id) {
+      const temp = { id: "temp-" + Date.now(), ...form };
+      setRows((p) => [temp, ...p]);
+      setShowForm(false);
+      setEditing(null);
+    }
+    try {
+      await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    } finally {
+      setSaving(false);
+      load();
+    }
   }
 
   async function remove(id: string) {
     if (!confirm("Delete this record?")) return;
+    setRows((p) => p.filter((r) => r.id !== id)); // optimistic remove
     await fetch(`/api/${meta.slug}/${id}`, { method: "DELETE" });
-    load();
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 flex-wrap" style={{ gap: 8 }}>
         <div>
           <h1 style={{ fontSize: 18, margin: 0 }}>{meta.label}</h1>
-          <span style={{ color: "var(--text-dim)", fontSize: 12 }}>{rows.length} records</span>
+          <span style={{ color: "var(--text-dim)", fontSize: 12 }}>
+            {filtered.length} of {rows.length} records
+          </span>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>
-          + Add New
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            className="input"
+            style={{ width: 200 }}
+            placeholder="Search…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>
+            + Add New
+          </button>
+        </div>
       </div>
 
       {loading ? (
-        <div className="card" style={{ color: "var(--text-dim)" }}>Loading…</div>
+        <div className="card" style={{ color: "var(--text-dim)" }}>
+          <span className="pulse">Loading…</span>
+        </div>
       ) : (
         <div className="card" style={{ padding: 0, overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--text-dim)" }}>
-                {meta.fields.filter((f) => f.type !== "textarea").map((f) => (
+                {visibleFields.map((f) => (
                   <th key={f.key} style={{ textAlign: "left", padding: "8px 12px", fontWeight: 500 }}>{f.label}</th>
                 ))}
                 <th style={{ padding: "8px 12px", textAlign: "right" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {paged.map((r) => (
                 <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                  {meta.fields.filter((f) => f.type !== "textarea").map((f) => (
+                  {visibleFields.map((f) => (
                     <td key={f.key} style={{ padding: "8px 12px", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       <Cell field={f} value={r[f.key]} />
                     </td>
@@ -100,11 +153,19 @@ export function GenericTable({ meta }: { meta: CollectionMeta }) {
                   </td>
                 </tr>
               ))}
-              {rows.length === 0 && (
-                <tr><td colSpan={99} style={{ padding: 24, textAlign: "center", color: "var(--text-dim)" }}>No records yet.</td></tr>
+              {paged.length === 0 && (
+                <tr><td colSpan={99} style={{ padding: 24, textAlign: "center", color: "var(--text-dim)" }}>No records.</td></tr>
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center" style={{ gap: 8, marginTop: 10, justifyContent: "flex-end" }}>
+          <button className="btn" style={{ padding: "4px 8px" }} disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>Prev</button>
+          <span style={{ color: "var(--text-dim)", fontSize: 12 }}>{safePage + 1} / {totalPages}</span>
+          <button className="btn" style={{ padding: "4px 8px" }} disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)}>Next</button>
         </div>
       )}
 
@@ -112,6 +173,7 @@ export function GenericTable({ meta }: { meta: CollectionMeta }) {
         <FormModal
           meta={meta}
           editing={editing}
+          saving={saving}
           onClose={() => { setShowForm(false); setEditing(null); }}
           onSave={save}
         />
@@ -120,15 +182,16 @@ export function GenericTable({ meta }: { meta: CollectionMeta }) {
   );
 }
 
-function FormModal({ meta, editing, onClose, onSave }: {
+function FormModal({ meta, editing, saving, onClose, onSave }: {
   meta: CollectionMeta;
   editing: any | null;
+  saving: boolean;
   onClose: () => void;
   onSave: (form: any, id?: string) => void;
 }) {
   const [form, setForm] = useState<any>(() => {
     const f: any = {};
-    meta.fields.forEach((fl) => (f[fl.key] = editing?.[fl.key] ?? ""));
+    meta.fields.forEach((fl) => (f[fl.key] = editing ? (fl.type === "date" ? toDateInput(editing[fl.key]) : (editing[fl.key] ?? "")) : ""));
     return f;
   });
 
@@ -149,7 +212,9 @@ function FormModal({ meta, editing, onClose, onSave }: {
         <div style={{ display: "grid", gap: 10 }}>
           {meta.fields.map((f) => (
             <label key={f.key} style={{ display: "block" }}>
-              <span style={{ fontSize: 12, color: "var(--text-dim)", display: "block", marginBottom: 4 }}>{f.label}{f.required ? " *" : ""}</span>
+              <span style={{ fontSize: 12, color: f.required ? "var(--accent)" : "var(--text-dim)", display: "block", marginBottom: 4 }}>
+                {f.label}{f.required ? " *" : ""}
+              </span>
               {f.type === "select" ? (
                 <select className="select" value={form[f.key]} onChange={(e) => set(f.key, e.target.value)}>
                   <option value="">—</option>
@@ -170,7 +235,9 @@ function FormModal({ meta, editing, onClose, onSave }: {
         </div>
         <div className="flex gap-2 mt-4" style={{ justifyContent: "flex-end" }}>
           <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={() => onSave(form, editing?.id)}>{editing ? "Save" : "Create"}</button>
+          <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form, editing?.id)}>
+            {saving ? "Saving…" : editing ? "Save" : "Create"}
+          </button>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@
     "seed": "node --loader ts-node/esm scripts/seed.ts"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "mongodb": "^6.8.0",
     "mongoose": "^8.6.0",
     "next": "^15.5.23",
