@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useEffectEvent, useRef } from "react";
 import { GenericTable } from "@/components/GenericTable";
 import { Card, StatusPie, GroupedBar, SimpleBar, COLORS } from "@/components/Charts";
 import { COLLECTIONS, getCollectionMeta } from "@/lib/collections";
@@ -8,22 +8,25 @@ import { COLLECTIONS, getCollectionMeta } from "@/lib/collections";
 function useAll(slugs: string[]) {
   const [data, setData] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
+  const fetchAll = useEffectEvent(async () => {
+    const out: Record<string, any[]> = {};
+    await Promise.all(
+      slugs.map(async (s) => {
+        try {
+          const r = await fetch(`/api/${s}`);
+          const j = await r.json();
+          out[s] = j.rows || [];
+        } catch { out[s] = []; }
+      })
+    );
+    return out;
+  });
   useEffect(() => {
-    (async () => {
-      const out: Record<string, any[]> = {};
-      await Promise.all(
-        slugs.map(async (s) => {
-          try {
-            const r = await fetch(`/api/${s}`);
-            const j = await r.json();
-            out[s] = j.rows || [];
-          } catch { out[s] = []; }
-        })
-      );
+    fetchAll().then((out) => {
       setData(out);
       setLoading(false);
-    })();
-  }, [slugs.join(",")]);
+    });
+  }, []);
   return { data, loading };
 }
 

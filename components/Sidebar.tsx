@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -53,14 +53,10 @@ const NAV = [
 const STORAGE_KEY = "bp18-sidebar-collapsed";
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) === "1"
+  );
   const pathname = usePathname();
-
-  // Restore collapse state across reloads.
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "1") setCollapsed(true);
-  }, []);
 
   function toggle() {
     setCollapsed((c) => {

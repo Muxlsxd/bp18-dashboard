@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect, useEffectEvent, useRef } from "react";
 import type { CollectionMeta, FieldDef } from "@/lib/collections";
 
 function badgeClass(value: string): string {
@@ -44,18 +44,28 @@ export function GenericTable({ meta }: { meta: CollectionMeta }) {
   const [page, setPage] = useState(0);
   const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const fetchRows = useCallback(async () => {
     const res = await fetch(`/api/${meta.slug}`);
     const data = await res.json();
-    setRows(data.rows || []);
-    setLoading(false);
+    return data.rows || [];
   }, [meta.slug]);
 
-  useEffect(() => { load(); }, [load]);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const rows = await fetchRows();
+    setRows(rows);
+    setLoading(false);
+  }, [fetchRows]);
 
-  // Reset to first page when filter changes.
-  useEffect(() => { setPage(0); }, [query]);
+  // Initial load on mount. useEffectEvent performs the data fetch (no setState
+  // in the effect body); all setState calls happen inside the .then() callback.
+  const fetchOnMount = useEffectEvent(() => fetchRows());
+  useEffect(() => {
+    fetchOnMount().then((rows) => {
+      setRows(rows);
+      setLoading(false);
+    });
+  }, []);
 
   const visibleFields = meta.fields.filter((f) => f.type !== "textarea");
 
@@ -116,7 +126,7 @@ export function GenericTable({ meta }: { meta: CollectionMeta }) {
             style={{ width: 200 }}
             placeholder="Search…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(0); }}
           />
           <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>
             + Add New
