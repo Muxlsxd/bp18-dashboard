@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "BP18 Frame & Body Dashboard",
-  description: "BlackPearl FSAE — Frame & Body subsystem control surface",
+  description: "FSAE BlackPearl — Frame & Body subsystem control center",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
