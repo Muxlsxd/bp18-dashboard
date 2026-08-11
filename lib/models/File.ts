@@ -19,6 +19,9 @@ const fileSchema = new Schema(
     googleFileId: { type: String, default: "" },
     googleWebViewLink: { type: String, default: "" },
     googleWebContentLink: { type: String, default: "" },
+    // Storage backend: "mongo" (GridFS) or "drive" (Google Drive). Falls back to mongo when Drive unavailable.
+    storage: { type: String, enum: ["mongo", "drive"], default: "mongo" },
+    mongoFileId: { type: Schema.Types.ObjectId, default: null },
     isLocked: { type: Boolean, default: false },
     lockedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     lockedAt: { type: Date, default: null },
