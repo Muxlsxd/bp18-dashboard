@@ -1,59 +1,67 @@
 import { connectDB } from "@/lib/mongodb";
 import { File as FileModel } from "@/lib/models/File";
 import { readFileFromMongo, deleteFileFromMongo } from "@/lib/file-storage";
+import { logActivity } from "@/lib/activity";
+import { withErrorHandler, isValidObjectId } from "@/lib/api-utils";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  await connectDB();
   const { id } = await params;
-  const record = await FileModel.findById(id);
-  if (!record) return Response.json({ error: "not found" }, { status: 404 });
-  if (record.storage === "drive" && record.googleFileId) {
-    // Drive-backed file would stream from Drive here. Falls back below.
-  }
-  if (!record.mongoFileId) return Response.json({ error: "no binary stored" }, { status: 404 });
-  try {
+  return withErrorHandler(async (req, ctx) => {
+    if (!isValidObjectId(id)) return Response.json({ error: "invalid id" }, { status: 400 });
+    await connectDB();
+    const record = await FileModel.findById(id);
+    if (!record) return Response.json({ error: "not found" }, { status: 404 });
+    if (!record.mongoFileId) return Response.json({ error: "no binary stored" }, { status: 404 });
     const buf = await readFileFromMongo(record.mongoFileId.toString());
     const bytes = new Uint8Array(buf);
+    const safeName = record.name.replace(/["\r\n]/g, "_");
     return new Response(new Blob([bytes]), {
       headers: {
         "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${record.name}"`,
+        "Content-Disposition": `attachment; filename="${safeName}"`,
       },
     });
-  } catch (e) {
-    return Response.json({ error: "download failed: " + (e as Error).message }, { status: 502 });
-  }
+  })(_req, { params: Promise.resolve({ id }) });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  await connectDB();
   const { id } = await params;
-  const body = await req.json().catch(() => ({}));
-  const update: Record<string, unknown> = {};
-  if (body.lock !== undefined) {
-    update.isLocked = body.lock;
-    update.lockedAt = body.lock ? new Date() : null;
-    if (body.lockedBy) update.lockedBy = body.lockedBy;
-  }
-  if (body.status) update.status = body.status;
-  const file = await FileModel.findByIdAndUpdate(id, update, { new: true }).lean();
-  if (!file) return Response.json({ error: "not found" }, { status: 404 });
-  return Response.json({ file });
+  return withErrorHandler(async (req, ctx) => {
+    if (!isValidObjectId(id)) return Response.json({ error: "invalid id" }, { status: 400 });
+    await connectDB();
+    const body = await req.json().catch(() => ({}));
+    if (!body || Object.keys(body).length === 0) {
+      return Response.json({ error: "empty update" }, { status: 400 });
+    }
+    const update: Record<string, unknown> = {};
+    if (body.lock !== undefined) {
+      update.isLocked = body.lock;
+      update.lockedAt = body.lock ? new Date() : null;
+      if (body.lockedBy) update.lockedBy = body.lockedBy;
+    }
+    if (body.status) update.status = body.status;
+    const file = await FileModel.findByIdAndUpdate(id, update, { new: true }).lean();
+    if (!file) return Response.json({ error: "not found" }, { status: 404 });
+    if (body.status && body.status !== "draft") {
+      await logActivity(`File ${file.name} → ${body.status}`, "approve");
+    }
+    return Response.json({ file });
+  })(req, { params: Promise.resolve({ id }) });
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  await connectDB();
   const { id } = await params;
-  const res = await FileModel.findByIdAndDelete(id);
-  if (!res) return Response.json({ error: "not found" }, { status: 404 });
-  if (res.mongoFileId) {
-    try {
-      await deleteFileFromMongo(res.mongoFileId.toString());
-    } catch {
-      // ignore gridfs delete failure
+  return withErrorHandler(async (req, ctx) => {
+    if (!isValidObjectId(id)) return Response.json({ error: "invalid id" }, { status: 400 });
+    await connectDB();
+    const res = await FileModel.findByIdAndDelete(id);
+    if (!res) return Response.json({ error: "not found" }, { status: 404 });
+    if (res.mongoFileId) {
+      await deleteFileFromMongo(res.mongoFileId.toString()).catch(() => {});
     }
-  }
-  return Response.json({ ok: true });
+    await logActivity(`Deleted file ${res.name}`, "delete");
+    return Response.json({ ok: true });
+  })(_req, { params: Promise.resolve({ id }) });
 }
