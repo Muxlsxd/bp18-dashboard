@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { NeoCard, NeoBadge } from "@/components/ui/Neo";
+import { IconAlert, IconInfo, IconCheck } from "@/components/ui/Icon";
 
 interface Kpi {
   totalTasks: number;
@@ -77,14 +78,16 @@ export default function DashboardPage() {
 function AutoSummary({ pending, crit }: { pending: number; crit: number }) {
   const msg =
     crit > 0
-      ? `⚠ ${crit} critical task(s) pending — attention required`
+      ? `${crit} critical task(s) pending — attention required`
       : pending > 0
-      ? `ℹ ${pending} task(s) in progress`
-      : `✓ All tasks on track`;
+      ? `${pending} task(s) in progress`
+      : `All tasks on track`;
   const tone = crit > 0 ? "red" : pending > 0 ? "yellow" : "green";
+  const Icon = crit > 0 ? IconAlert : pending > 0 ? IconInfo : IconCheck;
   return (
     <NeoCard className="neo-inset" style={{ padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
       <NeoBadge tone={tone as any}>{tone === "red" ? "ALERT" : tone === "yellow" ? "INFO" : "OK"}</NeoBadge>
+      <Icon style={{ color: `var(--accent-${tone})`, flexShrink: 0 }} />
       <span style={{ fontSize: 15 }}>{msg}</span>
     </NeoCard>
   );

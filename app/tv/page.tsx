@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAutoSlide } from "@/lib/hooks/useAutoSlide";
 import { NeoCard, NeoBadge } from "@/components/ui/Neo";
+import { IconAlert } from "@/components/ui/Icon";
 
 export default function TvPage() {
   const [kpi, setKpi] = useState<any>(null);
@@ -112,8 +113,9 @@ function SectionTimelineBom({ bom }: any) {
 function SectionAlerts({ crit }: any) {
   return (
     <NeoCard className="neo-inset" style={{ padding: 40, height: "100%", overflow: "auto" }}>
-      <div className="accent-red" style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>⚠ CRITICAL ALERTS</div>
-      {crit.length === 0 && <div className="text-dim" style={{ fontSize: 18 }}>No critical tasks pending ✓</div>}
+      <div className="accent-red" style={{ fontSize: 22, fontWeight: 700, marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
+        <IconAlert /> CRITICAL ALERTS
+      </div>
       {crit.map((t: any) => (
         <div key={t._id} style={{ padding: "14px 0", borderBottom: "1px solid var(--border)", fontSize: 18 }}>
           <span className="accent-red">●</span> {t.title} <span className="text-dim">— {t.priority}</span>

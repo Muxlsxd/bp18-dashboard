@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { ReactNode } from "react";
+import { IconOverview, IconTasks, IconFiles, IconBom, IconChart, IconTv } from "@/components/ui/Icon";
 
 const NAV = [
-  { href: "/dashboard", label: "Overview", icon: "▣" },
-  { href: "/dashboard/tasks", label: "Tasks", icon: "☑" },
-  { href: "/dashboard/files", label: "Files", icon: "▤" },
-  { href: "/dashboard/bom", label: "BOM", icon: "▥" },
-  { href: "/tv", label: "TV Mode", icon: "▦" },
+  { href: "/dashboard", label: "Overview", Icon: IconOverview },
+  { href: "/dashboard/tasks", label: "Tasks", Icon: IconTasks },
+  { href: "/dashboard/files", label: "Files", Icon: IconFiles },
+  { href: "/dashboard/bom", label: "BOM", Icon: IconBom },
+  { href: "/dashboard/analytics", label: "Analytics", Icon: IconChart },
+  { href: "/tv", label: "TV Mode", Icon: IconTv },
 ];
 
 export function Sidebar() {
@@ -17,7 +19,7 @@ export function Sidebar() {
       </div>
       {NAV.map((n) => (
         <Link key={n.href} href={n.href} className="neo-btn" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 20, textAlign: "center" }}>{n.icon}</span>
+          <span style={{ width: 20, display: "flex", justifyContent: "center" }}><n.Icon /></span>
           {n.label}
         </Link>
       ))}
