@@ -34,7 +34,14 @@ export function WeightSparkline({ data, width = 180, height = 44 }: { data: { we
     .join(" ");
   return (
     <svg width={width} height={height} style={{ display: "block", marginTop: 8 }}>
-      <polyline points={pts} fill="none" stroke="var(--accent-green)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <defs>
+        <linearGradient id="wsgrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent-green)" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="var(--accent-green)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polyline points={`0,${height} ${pts} ${width},${height}`} fill="url(#wsgrad)" stroke="none" />
+      <polyline points={pts} fill="none" stroke="var(--accent-green)" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 3px rgba(0,230,118,0.6))" }} />
     </svg>
   );
 }

@@ -40,53 +40,55 @@ export default async function DashboardPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+      <div className="bp18-rise" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, ["--i" as any]: 0 }}>
         <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: 1 }}>
           BP18 <span className="accent-green">·</span> F&amp;B CONTROL
         </div>
         <StatusBar health={health} />
       </div>
 
-      <AutoSummary pending={pending} crit={crit} />
+      <div className="bp18-rise" style={{ ["--i" as any]: 1 }}><AutoSummary pending={pending} crit={crit} /></div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-        <KpiCard label="Progress" value={`${kpi?.progress ?? 0}`} suffix="%" tone="green" />
-        <KpiCard label="Tasks Pending" value={`${pending}`} tone="yellow" />
-        <KpiCard label="Weight" value={`${project?.currentWeight ?? 0}/${project?.targetWeight ?? 0}`} suffix="kg" tone="green" spark={weightHist} />
-        <KpiCard label="Days Left" value={`${daysLeft}`} tone="dim" />
+        <KpiCard label="Progress" value={`${kpi?.progress ?? 0}`} suffix="%" tone="green" i={2} />
+        <KpiCard label="Tasks Pending" value={`${pending}`} tone="yellow" i={3} />
+        <KpiCard label="Weight" value={`${project?.currentWeight ?? 0}/${project?.targetWeight ?? 0}`} suffix="kg" tone="green" spark={weightHist} i={4} />
+        <KpiCard label="Days Left" value={`${daysLeft}`} tone="dim" i={5} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <NeoCard className="neo" style={{ padding: 20 }}>
+      <div className="bp18-rise" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, ["--i" as any]: 6 }}>
+        <NeoCard className="neo bp18-tilt" style={{ padding: 20 }}>
           <div style={{ fontSize: 13, marginBottom: 10 }} className="text-dim">OVERALL PROGRESS</div>
           <div className="neo-bar"><div className="neo-bar-fill" style={{ width: `${kpi?.progress ?? 0}%` }} /></div>
           <div style={{ marginTop: 8, fontSize: 12 }} className="text-dim">
             {kpi?.done ?? 0}/{kpi?.totalTasks ?? 0} done · {kpi?.inProgress ?? 0} in progress
           </div>
         </NeoCard>
-        <NeoCard className="neo" style={{ padding: 20 }}>
+        <NeoCard className="neo bp18-tilt" style={{ padding: 20 }}>
           <div style={{ fontSize: 13, marginBottom: 10 }} className="text-dim">CRITICAL ATTENTION</div>
           <OverdueTasks tasks={tasks} />
         </NeoCard>
       </div>
 
-      <NeoCard className="neo" style={{ padding: 20 }}>
-        <div style={{ fontSize: 13, marginBottom: 14 }} className="text-dim">MILESTONES — KICKOFF → COMPETITION</div>
-        <MilestoneTimeline items={milestones} />
-      </NeoCard>
+      <div className="bp18-rise" style={{ ["--i" as any]: 7 }}>
+        <NeoCard className="neo bp18-tilt" style={{ padding: 20 }}>
+          <div style={{ fontSize: 13, marginBottom: 14 }} className="text-dim">MILESTONES — KICKOFF → COMPETITION</div>
+          <MilestoneTimeline items={milestones} />
+        </NeoCard>
+      </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16 }}>
-        <NeoCard className="neo" style={{ padding: 20 }}>
+      <div className="bp18-rise" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, ["--i" as any]: 8 }}>
+        <NeoCard className="neo bp18-tilt" style={{ padding: 20 }}>
           <div style={{ fontSize: 13, marginBottom: 12 }} className="text-dim">ACTIVITY FEED</div>
           <ActivityFeed items={activity} />
         </NeoCard>
-        <NeoCard className="neo" style={{ padding: 20 }}>
+        <NeoCard className="neo bp18-tilt" style={{ padding: 20 }}>
           <div style={{ fontSize: 13, marginBottom: 14 }} className="text-dim">TEAM · {members.length} MEMBERS</div>
           <MembersWidget members={members} />
         </NeoCard>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="bp18-rise" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, ["--i" as any]: 9 }}>
         <NeoCard className="neo" style={{ padding: 20 }}>
           <div style={{ fontSize: 13, marginBottom: 10 }} className="text-dim">PROJECT</div>
           <div style={{ fontSize: 20, fontWeight: 700 }}>{project?.name ?? "—"}</div>
@@ -114,11 +116,11 @@ function AutoSummary({ pending, crit }: { pending: number; crit: number }) {
   );
 }
 
-function KpiCard({ label, value, suffix, tone, spark }: { label: string; value: string; suffix?: string; tone: "green" | "yellow" | "dim"; spark?: { weight: number }[] }) {
+function KpiCard({ label, value, suffix, tone, spark, i }: { label: string; value: string; suffix?: string; tone: "green" | "yellow" | "dim"; spark?: { weight: number }[]; i?: number }) {
   return (
-    <NeoCard className="neo" style={{ padding: 18 }}>
+    <NeoCard className="neo bp18-tilt bp18-rise" style={{ padding: 18, ["--i" as any]: i ?? 0 }}>
       <div style={{ fontSize: 13 }} className="text-dim">{label}</div>
-      <div style={{ fontSize: 38, fontWeight: 800, marginTop: 4 }} className={`accent-${tone}`}>
+      <div style={{ fontSize: 38, fontWeight: 800, marginTop: 4 }} className={`accent-${tone} bp18-glow`}>
         {value}{suffix || ""}
       </div>
       {spark && spark.length > 1 && <WeightSparkline data={spark} />}

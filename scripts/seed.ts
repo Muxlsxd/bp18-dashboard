@@ -9,7 +9,7 @@ import { ActivityLog } from "@/lib/models/ActivityLog";
 
 // FSAE 2026 season milestones — from kickoff to competition
 const MILESTONES = [
-  { name: "Project Kickoff", dueDate: new Date("2026-08-15"), status: "completed" },
+  { name: "Project Kickoff", dueDate: new Date("2026-09-01"), status: "completed" },
   { name: "Concept Design Review", dueDate: new Date("2026-09-10"), status: "completed" },
   { name: "Design Freeze", dueDate: new Date("2026-10-01"), status: "pending" },
   { name: "FEA Validation", dueDate: new Date("2026-10-20"), status: "pending" },
@@ -154,11 +154,13 @@ async function seed() {
     { message: "Frame welding 60% complete", type: "reminder" },
     { message: "Fuel cell enclosure ordered", type: "upload" },
   ];
+  // Spread activity over the past ~10 days relative to a fixed season "today" (2026-12-15)
+  const SEASON_NOW = new Date("2026-12-15T09:00:00").getTime();
   await ActivityLog.insertMany(
     activities.map((a, i) => ({
       projectId: project._id,
       userId: members[i % members.length]._id,
-      timestamp: new Date(Date.now() - (activities.length - i) * 3600_000),
+      timestamp: new Date(SEASON_NOW - (activities.length - i) * 22 * 3600_000),
       ...a,
     }))
   );

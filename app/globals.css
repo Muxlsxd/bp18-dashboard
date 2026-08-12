@@ -114,3 +114,46 @@ body {
   box-shadow: 0 0 8px rgba(0, 230, 118, 0.6);
   transition: width 0.4s ease;
 }
+
+/* ===== CSS-only animations (SSR-safe, no framer-motion hydration issues) ===== */
+
+/* entrance: fade + slide up, staggered via --i */
+@keyframes bp18-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.bp18-rise {
+  opacity: 0;
+  animation: bp18-rise 0.5s ease forwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* subtle glow pulse for KPI accents (green/yellow only) */
+@keyframes bp18-glow {
+  0%, 100% { text-shadow: 0 0 6px rgba(0, 230, 118, 0.35); }
+  50% { text-shadow: 0 0 16px rgba(0, 230, 118, 0.7); }
+}
+.bp18-glow { animation: bp18-glow 3s ease-in-out infinite; }
+.accent-dim.bp18-glow { animation: none; text-shadow: none; }
+
+/* hover tilt (3D, pointer-driven via CSS transform on hover) */
+.bp18-tilt {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transform: perspective(800px) rotateX(0deg) rotateY(0deg);
+}
+.bp18-tilt:hover {
+  transform: perspective(800px) rotateX(-3deg) rotateY(3deg) translateY(-3px);
+  box-shadow: 12px 12px 22px var(--shadow-dark), -12px -12px 22px var(--shadow-light);
+}
+
+/* milestone node pulse */
+@keyframes bp18-node {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent-green); }
+  50% { transform: scale(1.12); box-shadow: 0 0 0 5px transparent; }
+}
+.bp18-node-done { animation: bp18-node 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bp18-rise, .bp18-glow, .bp18-node-done { animation: none !important; opacity: 1 !important; }
+  .bp18-tilt:hover { transform: none; }
+}
