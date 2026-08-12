@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { useAutoSlide } from "@/lib/hooks/useAutoSlide";
 import { NeoCard, NeoBadge } from "@/components/ui/Neo";
 import { IconAlert } from "@/components/ui/Icon";
+import { FadeIn, CardSwap } from "@/components/ui/Anim";
 
 export default function TvPage() {
   const [kpi, setKpi] = useState<any>(null);
@@ -28,10 +30,14 @@ export default function TvPage() {
       </div>
 
       <div style={{ flex: 1, position: "relative" }}>
-        {current === 0 && <SectionBigPicture kpi={kpi} project={kpi?.project} />}
-        {current === 1 && <SectionFiles files={files} />}
-        {current === 2 && <SectionTimelineBom bom={bom} />}
-        {current === 3 && <SectionAlerts crit={crit} />}
+        <AnimatePresence mode="wait">
+          <FadeIn key={current} delay={0}>
+            {current === 0 && <SectionBigPicture kpi={kpi} project={kpi?.project} />}
+            {current === 1 && <SectionFiles files={files} />}
+            {current === 2 && <SectionTimelineBom bom={bom} />}
+            {current === 3 && <SectionAlerts crit={crit} />}
+          </FadeIn>
+        </AnimatePresence>
       </div>
 
       <DotNav current={current} setCurrent={setCurrent} />

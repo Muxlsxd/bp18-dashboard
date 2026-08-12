@@ -75,6 +75,7 @@ body {
 .accent-green { color: var(--accent-green); }
 .accent-yellow { color: var(--accent-yellow); }
 .accent-red { color: var(--accent-red); }
+.neo-acc { color: var(--text); }
 
 /* progress bar */
 .neo-bar {

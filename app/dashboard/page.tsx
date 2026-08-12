@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { NeoCard, NeoBadge } from "@/components/ui/Neo";
 import { IconAlert, IconInfo, IconCheck } from "@/components/ui/Icon";
+import { FadeIn, TiltCard, CountUp, ShinyText } from "@/components/ui/Anim";
 
 interface Kpi {
   totalTasks: number;
@@ -39,37 +40,53 @@ export default function DashboardPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      <AutoSummary pending={pending} crit={crit} />
+      <FadeIn>
+        <ShinyText className="neo-acc" >
+          <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: 1 }}>
+            BP18 <span className="accent-green">·</span> F&amp;B CONTROL
+          </div>
+        </ShinyText>
+      </FadeIn>
+
+      <FadeIn delay={0.05}>
+        <AutoSummary pending={pending} crit={crit} />
+      </FadeIn>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 18 }}>
-        <KpiCard label="Progress" value={`${kpi?.progress ?? 0}%`} tone="green" />
-        <KpiCard label="Tasks Pending" value={String(pending)} tone="yellow" />
-        <KpiCard label="Weight" value={`${project?.currentWeight ?? 0}/${project?.targetWeight ?? 0}kg`} tone="green" />
-        <KpiCard label="Days Left" value={String(daysLeft)} tone="dim" />
+        <KpiCard label="Progress" value={kpi?.progress ?? 0} suffix="%" tone="green" />
+        <KpiCard label="Tasks Pending" value={pending} tone="yellow" />
+        <KpiCard label="Weight" value={`${project?.currentWeight ?? 0}/${project?.targetWeight ?? 0}`} suffix="kg" tone="green" />
+        <KpiCard label="Days Left" value={daysLeft} tone="dim" />
       </div>
 
-      <NeoCard className="neo" style={{ padding: 22 }}>
-        <div style={{ fontSize: 14, marginBottom: 12 }} className="text-dim">OVERALL PROGRESS</div>
-        <div className="neo-bar">
-          <div className="neo-bar-fill" style={{ width: `${kpi?.progress ?? 0}%` }} />
-        </div>
-        <div style={{ marginTop: 10, fontSize: 13 }} className="text-dim">
-          {kpi?.done ?? 0}/{kpi?.totalTasks ?? 0} done · {kpi?.inProgress ?? 0} in progress
-        </div>
-      </NeoCard>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+      <FadeIn delay={0.1}>
         <NeoCard className="neo" style={{ padding: 22 }}>
-          <div style={{ fontSize: 14, marginBottom: 12 }} className="text-dim">RECENT TASKS</div>
-          <TaskList tasks={tasks.slice(0, 6)} />
-        </NeoCard>
-        <NeoCard className="neo" style={{ padding: 22 }}>
-          <div style={{ fontSize: 14, marginBottom: 12 }} className="text-dim">PROJECT</div>
-          <div style={{ fontSize: 22, fontWeight: 700 }}>{project?.name ?? "—"}</div>
-          <div style={{ marginTop: 12, fontSize: 13 }} className="text-dim">
-            Target weight: {project?.targetWeight ?? 0} kg
+          <div style={{ fontSize: 14, marginBottom: 12 }} className="text-dim">OVERALL PROGRESS</div>
+          <div className="neo-bar">
+            <div className="neo-bar-fill" style={{ width: `${kpi?.progress ?? 0}%` }} />
+          </div>
+          <div style={{ marginTop: 10, fontSize: 13 }} className="text-dim">
+            {kpi?.done ?? 0}/{kpi?.totalTasks ?? 0} done · {kpi?.inProgress ?? 0} in progress
           </div>
         </NeoCard>
+      </FadeIn>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+        <FadeIn delay={0.15}>
+          <NeoCard className="neo" style={{ padding: 22 }}>
+            <div style={{ fontSize: 14, marginBottom: 12 }} className="text-dim">RECENT TASKS</div>
+            <TaskList tasks={tasks.slice(0, 6)} />
+          </NeoCard>
+        </FadeIn>
+        <FadeIn delay={0.2}>
+          <NeoCard className="neo" style={{ padding: 22 }}>
+            <div style={{ fontSize: 14, marginBottom: 12 }} className="text-dim">PROJECT</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{project?.name ?? "—"}</div>
+            <div style={{ marginTop: 12, fontSize: 13 }} className="text-dim">
+              Target weight: {project?.targetWeight ?? 0} kg
+            </div>
+          </NeoCard>
+        </FadeIn>
       </div>
     </div>
   );
@@ -93,12 +110,17 @@ function AutoSummary({ pending, crit }: { pending: number; crit: number }) {
   );
 }
 
-function KpiCard({ label, value, tone }: { label: string; value: string; tone: "green" | "yellow" | "dim" }) {
+function KpiCard({ label, value, suffix, tone }: { label: string; value: number | string; suffix?: string; tone: "green" | "yellow" | "dim" }) {
+  const isNum = typeof value === "number";
   return (
-    <NeoCard className="neo" style={{ padding: 20 }}>
-      <div style={{ fontSize: 13 }} className="text-dim">{label}</div>
-      <div style={{ fontSize: 40, fontWeight: 800, marginTop: 6 }} className={`accent-${tone}`}>{value}</div>
-    </NeoCard>
+    <TiltCard className="neo" >
+      <div style={{ padding: 20 }}>
+        <div style={{ fontSize: 13 }} className="text-dim">{label}</div>
+        <div style={{ fontSize: 40, fontWeight: 800, marginTop: 6 }} className={`accent-${tone}`}>
+          {isNum ? <CountUp value={value} suffix={suffix || ""} /> : `${value}${suffix || ""}`}
+        </div>
+      </div>
+    </TiltCard>
   );
 }
 
