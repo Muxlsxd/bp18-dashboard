@@ -18,6 +18,16 @@ const weightEntrySchema = new Schema(
   { _id: false }
 );
 
+// Weight budget per subsystem (target allocation, kg)
+const subsystemWeightSchema = new Schema(
+  {
+    subsystem: { type: String, required: true }, // e.g. "Chassis", "Impact", "Suspension"
+    budget: { type: Number, default: 0 }, // target kg
+    actual: { type: Number, default: 0 }, // current measured kg
+  },
+  { _id: false }
+);
+
 const projectSchema = new Schema(
   {
     name: { type: String, required: true },
@@ -26,6 +36,7 @@ const projectSchema = new Schema(
     currentWeight: { type: Number, default: 0 },
     weightHistory: { type: [weightEntrySchema], default: [] },
     milestones: { type: [milestoneSchema], default: [] },
+    subsystemWeights: { type: [subsystemWeightSchema], default: [] },
     materialMix: {
       aluminum: { type: Number, default: 0 },
       steel: { type: Number, default: 0 },

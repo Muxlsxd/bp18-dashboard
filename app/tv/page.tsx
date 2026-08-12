@@ -5,143 +5,174 @@ import { AnimatePresence } from "framer-motion";
 import { useAutoSlide } from "@/lib/hooks/useAutoSlide";
 import { NeoCard, NeoBadge } from "@/components/ui/Neo";
 import { IconAlert } from "@/components/ui/Icon";
-import { FadeIn, CardSwap } from "@/components/ui/Anim";
+import { FadeIn } from "@/components/ui/Anim";
+import { MilestoneTimeline, MembersWidget, ActivityFeed, OverdueTasks, computeMilestoneNodes } from "@/components/DashboardWidgets";
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend,
+} from "recharts";
 
 export default function TvPage() {
   const [kpi, setKpi] = useState<any>(null);
+  const [project, setProject] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);
   const [bom, setBom] = useState<any[]>([]);
-  const { current, setCurrent } = useAutoSlide(4, 15000);
+  const [activity, setActivity] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [milestones, setMilestones] = useState<any[]>([]);
+  const { current, setCurrent } = useAutoSlide(6, 15000);
 
   useEffect(() => {
-    fetch("/api/projects/current").then((r) => r.json()).then(setKpi);
+    fetch("/api/projects/current").then((r) => r.json()).then((d) => { setProject(d.project); setKpi(d.kpi); });
     fetch("/api/tasks").then((r) => r.json()).then((d) => setTasks(d.tasks || []));
     fetch("/api/files").then((r) => r.json()).then((d) => setFiles(d.files || []));
     fetch("/api/bom").then((r) => r.json()).then((d) => setBom(d.bom || []));
+    fetch("/api/activity").then((r) => r.json()).then((d) => setActivity(d.activities || d.logs || []));
+    fetch("/api/members").then((r) => r.json()).then((d) => setMembers(d.members || []));
+    fetch("/api/milestones").then((r) => r.json()).then((d) => setMilestones(d.milestones || []));
   }, []);
 
-  const crit = tasks.filter((t) => t.priority === "critical" && t.status !== "done");
+  const crit = tasks.filter((t: any) => t.priority === "critical" && t.status !== "done");
+  const weightHist = (project?.weightHistory || []).map((w: any) => ({ timestamp: new Date(w.timestamp).toLocaleDateString(), weight: w.weight }));
+  const byMaterial = bom.reduce((acc: Record<string, number>, b: any) => {
+    const m = b.material || "unknown";
+    acc[m] = (acc[m] || 0) + (b.unitWeight || 0);
+    return acc;
+  }, {});
+  const bomData = Object.entries(byMaterial).map(([name, weight]) => ({ name, weight }));
+  const axes = { stroke: "#6b7a90", fontSize: 12 };
+  const tooltipStyle = { background: "#22262e", border: "1px solid #2d3a4d", borderRadius: 8, color: "#e0e5ec" };
 
   return (
     <div style={{ width: "100vw", height: "100vh", overflow: "hidden", background: "var(--bg)", padding: 40, display: "flex", flexDirection: "column" }}>
       <div style={{ fontSize: 28, fontWeight: 800, marginBottom: 20 }}>
         BP18 FSAE <span className="accent-green">·</span> Frame &amp; Body TV
+        <span style={{ float: "right", fontSize: 16, fontWeight: 400 }} className="text-dim">{project?.name}</span>
       </div>
 
       <div style={{ flex: 1, position: "relative" }}>
         <AnimatePresence mode="wait">
           <FadeIn key={current} delay={0}>
-            {current === 0 && <SectionBigPicture kpi={kpi} project={kpi?.project} />}
-            {current === 1 && <SectionFiles files={files} />}
-            {current === 2 && <SectionTimelineBom bom={bom} />}
-            {current === 3 && <SectionAlerts crit={crit} />}
+            {current === 0 && <SectionBigPicture kpi={kpi} project={project} tasks={tasks} />}
+            {current === 1 && <SectionWeight weightHist={weightHist} project={project} axes={axes} tooltipStyle={tooltipStyle} />}
+            {current === 2 && <SectionBom bomData={bomData} axes={axes} tooltipStyle={tooltipStyle} />}
+            {current === 3 && <SectionMilestonesMembers milestones={milestones} members={members} />}
+            {current === 4 && <SectionActivity activity={activity} />}
+            {current === 5 && <SectionAlerts crit={crit} tasks={tasks} />}
           </FadeIn>
         </AnimatePresence>
       </div>
 
-      <DotNav current={current} setCurrent={setCurrent} />
+      <DotNav current={current} setCurrent={setCurrent} count={6} />
     </div>
   );
 }
 
-function SectionBigPicture({ kpi, project }: any) {
+function SectionBigPicture({ kpi, project, tasks }: any) {
+  const pending = tasks.filter((t: any) => t.status !== "done").length;
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, height: "100%" }}>
-      <NeoCard className="neo" style={{ padding: 40, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div className="text-dim" style={{ fontSize: 16 }}>PROGRESS</div>
-        <div className="accent-green" style={{ fontSize: 120, fontWeight: 900, lineHeight: 1 }}>{kpi?.kpi?.progress ?? 0}%</div>
-        <div className="text-dim" style={{ marginTop: 20, fontSize: 18 }}>
-          {kpi?.kpi?.done ?? 0}/{kpi?.kpi?.totalTasks ?? 0} tasks done
-        </div>
-      </NeoCard>
-      <NeoCard className="neo" style={{ padding: 40, display: "flex", flexDirection: "column", justifyContent: "center", gap: 20 }}>
-        <div>
-          <div className="text-dim" style={{ fontSize: 16 }}>CURRENT WEIGHT</div>
-          <div style={{ fontSize: 64, fontWeight: 800 }}>{(project?.currentWeight ?? 0)} kg</div>
-          <div className="text-dim">/ {project?.targetWeight ?? 0} kg target</div>
-        </div>
-        <div>
-          <div className="text-dim" style={{ fontSize: 16 }}>IN PROGRESS</div>
-          <div style={{ fontSize: 64, fontWeight: 800 }} className="accent-yellow">{kpi?.kpi?.inProgress ?? 0}</div>
-        </div>
-      </NeoCard>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, height: "100%" }}>
+      {[
+        { label: "PROGRESS", value: `${kpi?.progress ?? 0}%`, tone: "var(--accent-green)" },
+        { label: "TASKS PENDING", value: String(pending), tone: "var(--accent-yellow)" },
+        { label: "WEIGHT", value: `${project?.currentWeight ?? 0}/${project?.targetWeight ?? 0}kg`, tone: "var(--accent-green)" },
+        { label: "DAYS LEFT", value: "120", tone: "var(--text)" },
+      ].map((c) => (
+        <NeoCard key={c.label} className="neo" style={{ padding: 28, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div style={{ fontSize: 16 }} className="text-dim">{c.label}</div>
+          <div style={{ fontSize: 56, fontWeight: 800, marginTop: 12, color: c.tone }}>{c.value}</div>
+        </NeoCard>
+      ))}
     </div>
   );
 }
 
-function SectionFiles({ files }: any) {
-  const grid = files.slice(0, 8);
+function SectionWeight({ weightHist, project, axes, tooltipStyle }: any) {
   return (
-    <NeoCard className="neo" style={{ padding: 30, height: "100%", overflow: "auto" }}>
-      <div className="text-dim" style={{ fontSize: 16, marginBottom: 16 }}>CAD / DRW FILES</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
-        {grid.map((f: any) => (
-          <div key={f._id} className="neo-inset" style={{ padding: 16, textAlign: "center" }}>
-            <div style={{ fontSize: 15, fontWeight: 600 }}>{f.name}</div>
-            <div style={{ marginTop: 10 }}>
-              <NeoBadge tone={f.status === "approved" ? "green" : f.status === "review" ? "yellow" : "dim"}>{f.status}</NeoBadge>
-            </div>
-          </div>
-        ))}
-        {!grid.length && <div className="text-dim">No files yet</div>}
+    <NeoCard className="neo" style={{ padding: 28, height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ fontSize: 18, marginBottom: 12 }}>WEIGHT TREND <span className="text-dim" style={{ fontSize: 14 }}>(target {project?.targetWeight}kg)</span></div>
+      <div style={{ flex: 1 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={weightHist} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2d3a4d" />
+            <XAxis dataKey="timestamp" {...axes} />
+            <YAxis {...axes} domain={[0, (project?.targetWeight || 55) * 1.2]} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Line type="monotone" dataKey="weight" stroke="var(--accent-green)" strokeWidth={4} dot={{ r: 6 }} />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </NeoCard>
   );
 }
 
-function SectionTimelineBom({ bom }: any) {
-  const top = [...bom].sort((a, b) => (b.unitWeight || 0) - (a.unitWeight || 0)).slice(0, 6);
+function SectionBom({ bomData, axes, tooltipStyle }: any) {
+  const COLORS = ["#00e676", "#ffea00", "#00b0ff", "#ff1744", "#9c27b0"];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, height: "100%" }}>
-      <NeoCard className="neo" style={{ padding: 30, overflow: "auto" }}>
-        <div className="text-dim" style={{ fontSize: 16, marginBottom: 14 }}>MILESTONES</div>
-        {["Design Freeze", "Manufacturing", "Testing"].map((m, i) => (
-          <div key={m} style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-            <div className="neo-inset" style={{ width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>{i + 1}</div>
-            <div style={{ fontSize: 18 }}>{m}</div>
-          </div>
-        ))}
+    <NeoCard className="neo" style={{ padding: 28, height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ fontSize: 18, marginBottom: 12 }}>BOM WEIGHT BY MATERIAL</div>
+      <div style={{ flex: 1 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={bomData} dataKey="weight" nameKey="name" cx="50%" cy="50%" outerRadius="75%" label>
+              {bomData.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+            </Pie>
+            <Tooltip contentStyle={tooltipStyle} />
+            <Legend wrapperStyle={{ fontSize: 14 }} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    </NeoCard>
+  );
+}
+
+function SectionMilestonesMembers({ milestones, members }: any) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 20, height: "100%" }}>
+      <NeoCard className="neo" style={{ padding: 24, overflow: "auto" }}>
+        <div style={{ fontSize: 16, marginBottom: 16 }} className="text-dim">MILESTONES — KICKOFF → COMPETITION</div>
+        <MilestoneTimeline items={milestones} />
       </NeoCard>
-      <NeoCard className="neo" style={{ padding: 30, overflow: "auto" }}>
-        <div className="text-dim" style={{ fontSize: 16, marginBottom: 14 }}>BOM STATUS</div>
-        {top.map((b: any) => (
-          <div key={b._id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
-            <span>{b.partName}</span>
-            <NeoBadge tone={b.manufacturingStatus === "done" ? "green" : b.manufacturingStatus === "cutting" ? "yellow" : "dim"}>{b.manufacturingStatus || "waiting"}</NeoBadge>
-          </div>
-        ))}
+      <NeoCard className="neo" style={{ padding: 24, overflow: "auto" }}>
+        <div style={{ fontSize: 16, marginBottom: 16 }} className="text-dim">TEAM · {members.length}</div>
+        <MembersWidget members={members} />
       </NeoCard>
     </div>
   );
 }
 
-function SectionAlerts({ crit }: any) {
+function SectionActivity({ activity }: any) {
+  return (
+    <NeoCard className="neo" style={{ padding: 24, height: "100%", overflow: "auto" }}>
+      <div style={{ fontSize: 18, marginBottom: 16 }}>ACTIVITY FEED</div>
+      <ActivityFeed items={activity} />
+    </NeoCard>
+  );
+}
+
+function SectionAlerts({ crit, tasks }: any) {
   return (
     <NeoCard className="neo-inset" style={{ padding: 40, height: "100%", overflow: "auto" }}>
       <div className="accent-red" style={{ fontSize: 22, fontWeight: 700, marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
         <IconAlert /> CRITICAL ALERTS
       </div>
-      {crit.map((t: any) => (
-        <div key={t._id} style={{ padding: "14px 0", borderBottom: "1px solid var(--border)", fontSize: 18 }}>
-          <span className="accent-red">●</span> {t.title} <span className="text-dim">— {t.priority}</span>
-        </div>
-      ))}
+      <OverdueTasks tasks={tasks} />
     </NeoCard>
   );
 }
 
-function DotNav({ current, setCurrent }: { current: number; setCurrent: (n: number) => void }) {
-  const labels = ["Big Picture", "Files", "Timeline", "Alerts"];
+function DotNav({ current, setCurrent, count }: { current: number; setCurrent: (n: number) => void; count: number }) {
   return (
-    <div style={{ position: "fixed", bottom: 24, right: 30, display: "flex", gap: 12 }}>
-      {labels.map((l, i) => (
-        <button key={i} onClick={() => setCurrent(i)} title={l}
+    <div style={{ display: "flex", justifyContent: "center", gap: 14, marginTop: 20 }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <button
+          key={i}
+          onClick={() => setCurrent(i)}
           style={{
-            width: 14, height: 14, borderRadius: "50%", border: "none", cursor: "pointer",
+            width: 14, height: 14, borderRadius: "50%",
             background: i === current ? "var(--accent-green)" : "var(--shadow-light)",
-            boxShadow: i === current ? "0 0 10px var(--accent-green)" : "none",
-            transition: "all 0.3s ease",
+            border: "none", cursor: "pointer",
+            boxShadow: i === current ? "0 0 8px var(--accent-green)" : "none",
           }}
         />
       ))}

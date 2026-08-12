@@ -22,7 +22,7 @@ export function FadeIn({ children, delay = 0, y = 12 }: { children: ReactNode; d
 }
 
 /** TiltCard — 3D hover tilt (react-bits: TiltedCard / DecayCard) */
-export function TiltCard({ children, className = "", amplitude = 8 }: { children: ReactNode; className?: string; amplitude?: number }) {
+export function TiltCard({ children, className = "", amplitude = 14 }: { children: ReactNode; className?: string; amplitude?: number }) {
   const reduce = useReducedMotion();
   const [rx, setRx] = useState(0);
   const [ry, setRy] = useState(0);
