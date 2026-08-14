@@ -11,28 +11,44 @@ const COLS = [
   { key: "done", label: "Done" },
 ];
 
-// Mini Gantt — tasks positioned by dueDate across a 6-month window
+// Full Gantt — bar from (start ~ today-ish) to dueDate across season window
 function MiniGantt({ tasks }: { tasks: any[] }) {
   const start = new Date("2026-08-01").getTime();
   const end = new Date("2027-03-31").getTime();
   const span = end - start;
-  const toneByStatus: Record<string, string> = { "todo": "dim", "in-progress": "yellow", "review": "dim", "done": "green" };
-  const colorByStatus: Record<string, string> = { "todo": "var(--shadow-light)", "in-progress": "var(--accent-yellow)", "review": "var(--accent-green)", "done": "var(--accent-green)" };
+  const colorByStatus: Record<string, string> = {
+    "todo": "var(--text-dim)",
+    "in-progress": "var(--accent-yellow)",
+    "review": "var(--accent-green)",
+    "done": "var(--accent-green)",
+  };
+  // derive a pseudo-start 3 weeks before due (or use real start if present)
+  const taskStart = (t: any) => {
+    const due = t.dueDate ? new Date(t.dueDate).getTime() : end;
+    const s = t.startDate ? new Date(t.startDate).getTime() : due - 21 * 86400000;
+    return Math.min(s, due);
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ position: "relative", height: 18, marginLeft: 160, fontSize: 10 }} className="text-dim">
-        {["Aug", "Oct", "Dec", "Feb", "Mar"].map((m, i) => (
-          <span key={i} style={{ position: "absolute", left: `${(i / 4) * 100}%` }}>{m}</span>
+      <div style={{ position: "relative", height: 18, marginLeft: 180, fontSize: 10 }} className="text-dim">
+        {["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"].map((m, i) => (
+          <span key={i} style={{ position: "absolute", left: `${(i / 7) * 100}%` }}>{m}</span>
         ))}
       </div>
       {tasks.map((t) => {
         const due = t.dueDate ? new Date(t.dueDate).getTime() : end;
-        const left = Math.min(100, Math.max(0, ((due - start) / span) * 100));
+        const s = taskStart(t);
+        const left = Math.min(100, Math.max(0, ((s - start) / span) * 100));
+        const width = Math.max(4, Math.min(100 - left, ((due - s) / span) * 100));
         return (
           <div key={t._id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 152, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.title}</div>
-            <div style={{ flex: 1, position: "relative", height: 16, background: "var(--bg-card)", borderRadius: 4 }}>
-              <div style={{ position: "absolute", left: `${left}%`, top: 2, width: 10, height: 12, background: colorByStatus[t.status], borderRadius: 3, transform: "translateX(-50%)" }} title={t.title} />
+            <div style={{ width: 172, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.title}</div>
+            <div style={{ flex: 1, position: "relative", height: 18, background: "var(--bg-card)", borderRadius: 4 }}>
+              <div
+                style={{ position: "absolute", left: `${left}%`, width: `${width}%`, top: 3, height: 12, background: colorByStatus[t.status], borderRadius: 4, opacity: 0.85 }}
+                title={`${t.title} — due ${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : "?"}`}
+              />
+              <div style={{ position: "absolute", left: `${((due - start) / span) * 100}%`, top: 0, bottom: 0, width: 2, background: "var(--text-dim)", opacity: 0.5 }} />
             </div>
           </div>
         );

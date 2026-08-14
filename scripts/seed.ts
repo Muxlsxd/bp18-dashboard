@@ -20,13 +20,6 @@ const MILESTONES = [
   { name: "Competition (Endurance)", dueDate: new Date("2027-03-14"), status: "pending" },
 ];
 
-const SUBSYSTEM_WEIGHTS = [
-  { subsystem: "Chassis", budget: 22, actual: 18.4 },
-  { subsystem: "Impact Structures", budget: 14, actual: 12.1 },
-  { subsystem: "Suspension Mounts", budget: 10, actual: 7.8 },
-  { subsystem: "Body Panels", budget: 9, actual: 3.7 },
-];
-
 const MEMBERS = [
   { name: "X4N3Z", email: "muazzinnimah@gmail.com", role: "admin", position: "Frame & Body Lead", subsystem: "Chassis" },
   { name: "Prae", email: "prae@fsae.local", role: "engineer", position: "Welding Lead", subsystem: "Chassis" },
@@ -75,6 +68,15 @@ const FILES = [
   { name: "Welding_Procedure.pdf", category: "Manufacturing", type: "DRW", size: 1200000 },
   { name: "Side_Impact_Bar_dgw.pdf", category: "DRW", type: "DRW", size: 980000 },
   { name: "Frame_Assembly_v2.step", category: "CAD", type: "CAD", size: 6100000 },
+];
+
+const SUBSYSTEM_WEIGHTS = [
+  { subsystem: "Chassis", budget: 22, actual: 19.4 },
+  { subsystem: "Impact Structures", budget: 10, actual: 9.2 },
+  { subsystem: "Suspension", budget: 8, actual: 7.1 },
+  { subsystem: "Body Panels", budget: 9, actual: 6.8 },
+  { subsystem: "Steering", budget: 3, actual: 2.1 },
+  { subsystem: "Seats", budget: 3, actual: 2.2 },
 ];
 
 const WEIGHT_HISTORY = [

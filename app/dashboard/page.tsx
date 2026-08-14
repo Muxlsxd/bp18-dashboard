@@ -8,6 +8,7 @@ import {
   StatusBar,
   OverdueTasks,
 } from "@/components/DashboardWidgets";
+import { WeightBudget } from "@/components/AnalyticsWidgets";
 
 async function getData() {
   const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
@@ -30,8 +31,17 @@ async function getData() {
   };
 }
 
+// Helper: build subsystem weight data from project
+function buildSubsystemWeights(project: any) {
+  const sw = project?.subsystemWeights || [];
+  const totalBudget = sw.reduce((s: number, d: any) => s + (d.budget || 0), 0);
+  const totalActual = sw.reduce((s: number, d: any) => s + (d.actual || 0), 0);
+  return { sw, totalBudget, totalActual };
+}
+
 export default async function DashboardPage() {
   const { project, kpi, tasks, activity, members, milestones, health } = await getData();
+  const { sw, totalBudget, totalActual } = buildSubsystemWeights(project);
 
   const pending = tasks.filter((t: any) => t.status !== "done").length;
   const crit = tasks.filter((t: any) => t.priority === "critical" && t.status !== "done").length;
@@ -97,6 +107,18 @@ export default async function DashboardPage() {
         <NeoCard className="neo" style={{ padding: 20 }}>
           <div style={{ fontSize: 13, marginBottom: 12 }} className="text-dim">RECENT TASKS</div>
           <TaskList tasks={tasks.slice(0, 6)} />
+        </NeoCard>
+      </div>
+
+      <div className="bp18-rise" style={{ ["--i" as any]: 10 }}>
+        <NeoCard className="neo bp18-tilt" style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ fontSize: 13 }} className="text-dim">WEIGHT BUDGET vs ACTUAL</div>
+            <div style={{ fontSize: 13 }} className={totalActual > totalBudget ? "accent-red" : "accent-green"}>
+              {totalActual.toFixed(1)} / {totalBudget.toFixed(1)} kg
+            </div>
+          </div>
+          <WeightBudget data={sw} />
         </NeoCard>
       </div>
     </div>
